@@ -10,6 +10,10 @@ Install it yourself as:
 
 ## Usage
 
+Version 2.0.0 introduces a plugin system.  Other gems can add plugins to mvn2.  The files have to match the pattern `mvn2/plugin/*.plugin.rb` in your gem's `lib/` folder.  If you do that, when the gem is installed, `mvn2` will automatically pick up on it and load it.
+
+Please see the plugin folder in this gem for examples of how to use the plugin system.  I might add an explanation here later, but for now, you'll just have to figure it out.  My `colorconfig` gem also has a plugin for `mvn2`
+
 ###optional parameters:
 * `-t` or `--timer` to display a timer while the build is in progress (default is display nothing)
 * `-s` or `--skip-tests` to skip tests (default is running tests)
@@ -35,8 +39,6 @@ Install it yourself as:
 * `-e` or `--exception` to add the `-e -X` options to the `mvn` call
 * `-0` or `--live-print` to print filtered lines as they are outputted by maven
 * `-1` or `--set-defaults` to set the defaults so you can just run `mvn2` without any parameters
-* `--mobile-number NUM` to use the mobile number `NUM` (with country code and nothing other than digits) (country code for US is 1 so an example phone number would be `--mobile-number "13175649047"`) as the recipient of a text message (from **13179120742**) indicating the success or failure of a build and the name of the immediate folder of the build (requires gem `nexmo`)
-* `-2` or `--advanced-text` to upload the folder name, build time so far, and estimated percent complete (based on stored averages) to a server so that you can text **13179120742** (the number you get the build completion texts from) to get the status(es) of your ongoing build(s).  If you send the exact name of the folder (case-**sensitive**, only 1 at a time), it will only reply with entries matching that build.  If you text anything that does not exactly match a folder name, it will simply reply with all of the ongoing build statuses.  It identifies your builds by your mobile number, so make sure you're texting from the number you used as the parameter to the `--mobile-number NUM` option.
 
 ###displays:
 a Growl notification indicating success or failure
