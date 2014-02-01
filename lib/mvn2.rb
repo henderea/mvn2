@@ -1,0 +1,1 @@
+require 'mvn2/version'

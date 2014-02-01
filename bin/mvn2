@@ -1,0 +1,98 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'yaml'
+require 'net/http'
+require 'rubygems'
+require 'everyday-cli-utils'
+include EverydayCliUtils
+import :maputil, :format, :kmeans, :option
+require 'mvn2/plugin'
+begin
+  Gem.find_latest_files('/mvn2/plugin/*.plugin.rb').each { |plugin|
+    #noinspection RubyResolve
+    begin
+      require plugin
+    rescue LoadError => e
+      puts "Error in loading plugin '#{plugin}'"
+      puts e.inspect
+    end
+  }
+rescue Exception => e
+  puts 'Error in loading plugins'
+  puts e.inspect
+end
+
+#abcd   h jkl n p  stuvw   012
+#    efg i   m o qr     xyz   3456789
+
+class MyOptions
+  extend OptionUtil
+
+  default_settings toggle: true
+
+  defaults_option 'mvn2-defaults.yaml', %w(-1 --set-defaults), desc: 'set the defaults so you can just run mvn2 without any parameters (local to each folder)'
+
+  help_option ['--help'], desc: 'print out this help'
+end
+
+Mvn2::Plugins.get(:option, MyOptions)
+Mvn2::Plugins.get(:option_with_param, MyOptions)
+
+MyOptions.parse!
+
+options = MyOptions.options
+
+Mvn2::Plugins.set_var(:options, options)
+
+Signal.trap('SIGINT') {
+  puts "\nBuild Canceled\n\n"
+  exit 1
+}
+
+class String
+  def start_with_any?(*strs)
+    strs.empty? ? false : strs.any? { |str| start_with?(str) }
+  end
+end
+
+Mvn2::Plugins.get :color_override
+
+class Mvn2Runner
+  HEADLESS    = ' -Djava.awt.headless=true'
+  INFO_LINE   = '[INFO] ------------------------------------------------------------------------'
+  BUILD_REGEX = /\[INFO\] Building (?!(jar|war|zip))/
+
+  def initialize(options)
+    @options = options
+    setup_cmd
+    Mvn2::Plugins.set_var :cmd, @cmd
+    Mvn2::Plugins.set_var :cmd_clean, @cmd_clean
+  end
+
+  def setup_cmd
+    flags      = Mvn2::Plugins.get :command_flag
+    goals      = Mvn2::Plugins.get :goal_override
+    @cmd       = "mvn #{goals}#{flags}#{HEADLESS} 2>&1"
+    @cmd_clean = @cmd[0...(-5-HEADLESS.length)]
+  end
+
+  def run_and_filter_output
+    Mvn2::Plugins.get :before_run
+    @result = Mvn2::Plugins.get :runner
+    Mvn2::Plugins.get :after_run
+  end
+
+  def run
+    Mvn2::Plugins.get :before_start
+    run_and_filter_output
+    Mvn2::Plugins.get :after_end
+
+    operation_name = Mvn2::Plugins.get :operation_name
+    Mvn2::Plugins.set_var :message_text, "#{operation_name} #{(@result ? 'Successful' : 'Failed')}"
+
+    Mvn2::Plugins.get :notification
+  end
+end
+
+Mvn2Runner.new(options).run
