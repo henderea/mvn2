@@ -145,25 +145,8 @@ module Mvn2
 
     def self.get_name(list)
       options = Mvn2::Plugins.get_var :options
-      name    = false
-      list.sort_by { |v| -v[:options][:priority] }.each { |item|
-        if item[:block].nil?
-          if item[:options].has_key?(:name) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-            name = item[:options][:name]
-            break
-          elsif item[:options].has_key?(:option) && !options[item[:options][:option]].nil?
-            name = options[item[:options][:option]]
-            break
-          end
-        else
-          rval = item[:block].call(options)
-          unless rval.nil? || !rval
-            name = rval
-            break
-          end
-        end
-      }
-      name
+      rval    = complex_filter(list.sort_by { |v| -v[:options][:priority] }, options, :name)
+      (rval.nil? || rval.empty?) ? false : rval
     end
 
     register_type(:log_file_name) { |list| get_name(list) }
@@ -206,24 +189,26 @@ module Mvn2
       Mvn2::Plugins.get_var :result
     }
 
-    def self.goal_filter(item, options)
-      if item[:block].nil?
-        if item[:options].has_key?(:goal) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-          item[:options][:goal]
+    def self.complex_filter(list, options, symbol)
+      list.filtermap { |item|
+        if item[:block].nil?
+          if item[:options].has_key?(symbol) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
+            item[:options][symbol]
+          else
+            item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
+          end
         else
-          item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
+          rval = item[:block].call(options)
+          (rval.nil? || !rval) ? false : rval
         end
-      else
-        rval = item[:block].call(options)
-        (rval.nil? || !rval) ? false : rval
-      end
+      }
     end
 
     register_type(:goal_override) { |list|
       options        = Mvn2::Plugins.get_var :options
-      full_overrides = list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }.filtermap { |item| goal_filter(item, options) }
+      full_overrides = complex_filter(list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }, options, :goal)
       if full_overrides.nil? || full_overrides.empty?
-        goals = list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }.filtermap { |item| goal_filter(item, options) }
+        goals = complex_filter(list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }, options, :goal)
         goals = ['install'] if (goals - ['clean']).empty?
         goals = ['clean'] + goals unless goals.include?('clean')
         goals.join(' ')
