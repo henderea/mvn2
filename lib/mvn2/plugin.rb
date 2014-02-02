@@ -154,19 +154,6 @@ module Mvn2
 
     def_options
 
-    register_type(:command_flag) { |list|
-      options = Mvn2::Plugins.get_var :options
-      flags   = []
-      list.each { |flag|
-        if flag[:block].nil?
-          flags << " #{flag[:options][:flag]}" if flag_boolean(flag, options)
-        else
-          flag[:block].call(options, flags)
-        end
-      }
-      flags.join
-    }
-
     def self.def_actions
       register_type(:before_run) { |list| simple_type(list) }
       register_type(:after_run) { |list| simple_type_with_result(list) }
@@ -212,35 +199,56 @@ module Mvn2
       result
     }
 
-    register_type(:runner_enable) { |list, key| basic_type(list.select { |v| v[:options][:key] == key }) }
+    def self.def_runner
+      register_type(:runner_enable) { |list, key| basic_type(list.select { |v| v[:options][:key] == key }) }
 
-    register_type(:runner) { |list|
-      options, cmd = Mvn2::Plugins.get_vars :options, :cmd
-      Mvn2::Plugins.set_var :result, false
-      list.sort_by { |v| -v[:options][:priority] }.each { |item|
-        if Mvn2::Plugins.get(:runner_enable, item[:options][:key])
-          Mvn2::Plugins.set_var :runner, item[:options][:key]
-          Mvn2::Plugins.set_var :result, item[:block].call(options, cmd)
-          break
+      register_type(:runner) { |list|
+        options, cmd = Mvn2::Plugins.get_vars :options, :cmd
+        Mvn2::Plugins.set_var :result, false
+        list.sort_by { |v| -v[:options][:priority] }.each { |item|
+          if Mvn2::Plugins.get(:runner_enable, item[:options][:key])
+            Mvn2::Plugins.set_var :runner, item[:options][:key]
+            Mvn2::Plugins.set_var :result, item[:block].call(options, cmd)
+            break
+          end
+        }
+        Mvn2::Plugins.get_var :result
+      }
+    end
+
+    def_runner
+
+    def self.def_command
+      register_type(:command_flag) { |list|
+        options = Mvn2::Plugins.get_var :options
+        flags   = []
+        list.each { |flag|
+          if flag[:block].nil?
+            flags << " #{flag[:options][:flag]}" if flag_boolean(flag, options)
+          else
+            flag[:block].call(options, flags)
+          end
+        }
+        flags.join
+      }
+
+      register_type(:goal_override) { |list|
+        options        = Mvn2::Plugins.get_var :options
+        full_overrides = complex_filter(list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }, options, :goal)
+        if full_overrides.nil? || full_overrides.empty?
+          goals = complex_filter(list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }, options, :goal)
+          goals = ['install'] if (goals - ['clean']).empty?
+          goals = ['clean'] + goals unless goals.include?('clean')
+          goals.join(' ')
+        else
+          full_overrides.first
         end
       }
-      Mvn2::Plugins.get_var :result
-    }
 
-    register_type(:goal_override) { |list|
-      options        = Mvn2::Plugins.get_var :options
-      full_overrides = complex_filter(list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }, options, :goal)
-      if full_overrides.nil? || full_overrides.empty?
-        goals = complex_filter(list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }, options, :goal)
-        goals = ['install'] if (goals - ['clean']).empty?
-        goals = ['clean'] + goals unless goals.include?('clean')
-        goals.join(' ')
-      else
-        full_overrides.first
-      end
-    }
+      register_type(:operation_name) { |list| get_name(list) || 'Operation' }
+    end
 
-    register_type(:operation_name) { |list| get_name(list) || 'Operation' }
+    def_command
 
     DEFAULT_COLOR_OPTS = {
         time:    {
@@ -257,17 +265,21 @@ module Mvn2
         },
     }
 
-    register_type(:color_override) { |list|
-      options = Mvn2::Plugins.get_var :options
-      opts    = DEFAULT_COLOR_OPTS
-      list.sort_by { |v| -v[:options][:priority] }.each { |item|
-        rval = item[:block].call(options)
-        unless rval.nil? || !rval
-          opts = rval
-          break
-        end
+    def self.def_color
+      register_type(:color_override) { |list|
+        options = Mvn2::Plugins.get_var :options
+        opts    = DEFAULT_COLOR_OPTS
+        list.sort_by { |v| -v[:options][:priority] }.each { |item|
+          rval = item[:block].call(options)
+          unless rval.nil? || !rval
+            opts = rval
+            break
+          end
+        }
+        opts.each { |opt| Format.color_profile opt[0], fgcolor: opt[1][:fg], bgcolor: opt[1][:bg] }
       }
-      opts.each { |opt| Format.color_profile opt[0], fgcolor: opt[1][:fg], bgcolor: opt[1][:bg] }
-    }
+    end
+
+    def_color
   end
 end
