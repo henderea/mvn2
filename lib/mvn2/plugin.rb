@@ -125,21 +125,16 @@ module Mvn2
       result = Mvn2::Plugins.get_var :result
       simple_type(list, result)
     end
+
+    def get_name(list)
+      options = Mvn2::Plugins.get_var :options
+      rval    = complex_filter(list.sort_by { |v| -v[:options][:priority] }, options, :name)
+      (rval.nil? || rval.empty?) ? false : rval.first
+    end
   end
-  class DefaultTypes
+  class OptionTypes
     extend Mvn2::PluginType
     extend Mvn2::TypeHelper
-
-    def self.def_vars
-      register_variable :options
-      register_variable :result
-      register_variable :runner
-      register_variable :cmd
-      register_variable :cmd_clean
-      register_variable :message_text
-    end
-
-    def_vars
 
     def self.register_option(list, options)
       list.sort_by { |v| v[:options][:sym].to_s }.each { |option|
@@ -157,6 +152,10 @@ module Mvn2
     end
 
     def_options
+  end
+  class ActionTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
     def self.def_actions
       register_type(:before_run) { |list| simple_type(list) }
@@ -170,12 +169,10 @@ module Mvn2
     end
 
     def_actions
-
-    def self.get_name(list)
-      options = Mvn2::Plugins.get_var :options
-      rval    = complex_filter(list.sort_by { |v| -v[:options][:priority] }, options, :name)
-      (rval.nil? || rval.empty?) ? false : rval.first
-    end
+  end
+  class LogTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
     def self.def_logs
       register_type(:log_file_name) { |list| get_name(list) }
@@ -184,24 +181,36 @@ module Mvn2
     end
 
     def_logs
+  end
+  class FilterTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
-    register_type(:line_filter) { |list, line|
-      options = Mvn2::Plugins.get_var :options
-      line    = line.chomp
-      result  = nil
-      begin
-        list.sort_by { |v| -v[:options][:priority] }.each { |item|
-          tmp = item[:block].call(options, line)
-          unless tmp.nil?
-            result = tmp || nil
-            break
-          end
-        }
-      rescue
-        result = line
-      end
-      result
-    }
+    def self.def_filter
+      register_type(:line_filter) { |list, line|
+        options = Mvn2::Plugins.get_var :options
+        line    = line.chomp
+        result  = nil
+        begin
+          list.sort_by { |v| -v[:options][:priority] }.each { |item|
+            tmp = item[:block].call(options, line)
+            unless tmp.nil?
+              result = tmp || nil
+              break
+            end
+          }
+        rescue
+          result = line
+        end
+        result
+      }
+    end
+
+    def_filter
+  end
+  class RunnerTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
     def self.def_runner
       register_type(:runner_enable) { |list, key| basic_type(list.select { |v| v[:options][:key] == key }) }
@@ -221,6 +230,10 @@ module Mvn2
     end
 
     def_runner
+  end
+  class CommandTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
     def self.def_command
       def_command_flag
@@ -259,6 +272,10 @@ module Mvn2
     end
 
     def_command
+  end
+  class ColorTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
     DEFAULT_COLOR_OPTS = {
         time:    {
@@ -291,5 +308,20 @@ module Mvn2
     end
 
     def_color
+  end
+  class DefaultTypes
+    extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
+
+    def self.def_vars
+      register_variable :options
+      register_variable :result
+      register_variable :runner
+      register_variable :cmd
+      register_variable :cmd_clean
+      register_variable :message_text
+    end
+
+    def_vars
   end
 end
