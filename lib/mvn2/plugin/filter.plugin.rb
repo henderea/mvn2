@@ -26,8 +26,7 @@ class FilterPlugin
       str = ''
       str << INFO_LINE << "\n" unless info_line_last
       str << line << "\n"
-      Mvn2::Plugins.set_var :found, true
-      Mvn2::Plugins.set_var :info_line_last, false
+      Mvn2::Plugins.set_vars found: true, info_line_last: false
       str
     else
       nil
@@ -37,8 +36,7 @@ class FilterPlugin
   register(:line_filter, priority: 20) { |_, line|
     if line.start_with_any?('[ERROR] COMPILATION ERROR :', 'Results :')
       str = line << "\n"
-      Mvn2::Plugins.set_var :found, true
-      Mvn2::Plugins.set_var :info_line_last, false
+      Mvn2::Plugins.set_vars found: true, info_line_last: false
       str
     else
       nil
@@ -49,8 +47,7 @@ class FilterPlugin
     found = Mvn2::Plugins.get_var :found
     if found
       str = line << "\n"
-      Mvn2::Plugins.set_var :found, true
-      Mvn2::Plugins.set_var :info_line_last, line.start_with?(INFO_LINE)
+      Mvn2::Plugins.set_vars found: true, info_line_last: line.start_with?(INFO_LINE)
       str
     else
       nil
@@ -61,8 +58,7 @@ class FilterPlugin
     found = Mvn2::Plugins.get_var :found
     if options[:hide_between] && found && line.start_with?('Tests run:')
       str = line << "\n\n"
-      Mvn2::Plugins.set_var :found, false
-      Mvn2::Plugins.set_var :info_line_last, false
+      Mvn2::Plugins.set_vars found: false, info_line_last: false
       str
     else
       nil

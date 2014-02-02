@@ -36,8 +36,8 @@ class MyOptions
   help_option ['--help'], desc: 'print out this help'
 end
 
-Mvn2::Plugins.get(:option, MyOptions)
-Mvn2::Plugins.get(:option_with_param, MyOptions)
+Mvn2::Plugins.get :option, MyOptions
+Mvn2::Plugins.get :option_with_param, MyOptions
 
 MyOptions.parse!
 

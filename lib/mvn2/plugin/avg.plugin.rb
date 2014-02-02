@@ -2,6 +2,7 @@ require 'mvn2/plugin'
 class AvgPlugin
   extend Mvn2::Plugin
   extend Mvn2::PluginType
+  extend Mvn2::TypeHelper
 
   register_variable :average
   register_variable :averages2
@@ -17,9 +18,7 @@ class AvgPlugin
   register_type(:block_average) { |list| basic_type(list) }
 
   register_type(:block_update) { |list|
-    result  = Mvn2::Plugins.get_var :result
-    average = Mvn2::Plugins.get_var :average
-    diff    = Mvn2::Plugins.get_var :diff
+    result, average, diff = Mvn2::Plugins.get_vars :result, :average, :diff
     basic_type(list, result, average, diff)
   }
 
@@ -90,10 +89,9 @@ class AvgPlugin
   end
 
   def self.read_advanced_avg
-    options   = Mvn2::Plugins.get_var :options
-    average   = Mvn2::Plugins.get_var :average
-    averages  = [average]
-    file_name = full_avg_file
+    options, average = Mvn2::Plugins.get_vars :options, :average
+    averages         = [average]
+    file_name        = full_avg_file
     if !Mvn2::Plugins.get(:block_full_average) && options[:advanced_average] && File.exist?(file_name)
       lines    = IO.readlines(file_name)
       data     = lines.filtermap { |line| float_filter(line) }
@@ -134,24 +132,18 @@ class AvgPlugin
       pkg     = options[:package] ? 2 : 0
       average = averages[(options[:skip_tests] ? 0 : 1) + pkg]
     end
-    Mvn2::Plugins.set_var :average, average
-    Mvn2::Plugins.set_var :averages2, averages
-    Mvn2::Plugins.set_var :counts, counts
+    Mvn2::Plugins.set_vars average: average, averages2: averages, counts: counts
   end
 
   def self.calc_new_avg(ind)
-    averages2      = Mvn2::Plugins.get_var :averages2
-    counts         = Mvn2::Plugins.get_var :counts
-    diff           = Mvn2::Plugins.get_var :diff
-    sum            = averages2[ind] * counts[ind] + diff
-    counts[ind]    += 1
-    averages2[ind] = sum / counts[ind]
+    averages2, counts, diff = Mvn2::Plugins.get_vars :averages2, :counts, :diff
+    sum                     = averages2[ind] * counts[ind] + diff
+    counts[ind]             += 1
+    averages2[ind]          = sum / counts[ind]
   end
 
   def self.update_avg
-    options   = Mvn2::Plugins.get_var :options
-    averages2 = Mvn2::Plugins.get_var :averages2
-    counts    = Mvn2::Plugins.get_var :counts
+    options, averages2, counts = Mvn2::Plugins.get_vars :options, :averages2, :counts
     if !Mvn2::Plugins.get(:block_average) && !Mvn2::Plugins.get(:block_update)
       options[:skip_tests] ? calc_new_avg(0) : calc_new_avg(1)
       IO.write('avg.txt', "#{averages2[0]};#{counts[0]}\n#{averages2[1]};#{counts[1]}\n#{averages2[2]};#{counts[2]}\n#{averages2[3]};#{counts[3]}")

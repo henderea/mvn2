@@ -43,16 +43,32 @@ module Mvn2
       @vars[name] || nil
     end
 
+    def get_vars(*names)
+      names.map { |name| get_var(name) }
+    end
+
     def set_var(name, value)
       @vars[name] = value
+    end
+
+    def set_vars(vars = {})
+      vars.each { |v| set_var(*v) }
     end
 
     def self.get_var(name)
       instance.get_var(name)
     end
 
+    def self.get_vars(*names)
+      instance.get_vars(*names)
+    end
+
     def self.set_var(name, value)
       instance.set_var(name, value)
+    end
+
+    def self.set_vars(vars = {})
+      instance.set_vars(vars)
     end
   end
   module Plugin
@@ -68,7 +84,8 @@ module Mvn2
     def register_variable(name, value = nil)
       Mvn2::Plugins.instance.register_variable(name, value)
     end
-
+  end
+  module TypeHelper
     def basic_type(list, *args)
       options = Mvn2::Plugins.get_var :options
       list.any? { |item|
@@ -111,6 +128,7 @@ module Mvn2
   end
   class DefaultTypes
     extend Mvn2::PluginType
+    extend Mvn2::TypeHelper
 
     register_variable :options
     register_variable :result
@@ -129,9 +147,12 @@ module Mvn2
       }
     end
 
-    register_type(:option) { |list, options| register_option(list, options) { |id, names, option| options.option id, names, option[:options] } }
+    def self.def_options
+      register_type(:option) { |list, options| register_option(list, options) { |id, names, option| options.option id, names, option[:options] } }
+      register_type(:option_with_param) { |list, options| register_option(list, options) { |id, names, option| options.option_with_param id, names, option[:options] } }
+    end
 
-    register_type(:option_with_param) { |list, options| register_option(list, options) { |id, names, option| options.option_with_param id, names, option[:options] } }
+    def_options
 
     register_type(:command_flag) { |list|
       options = Mvn2::Plugins.get_var :options
@@ -146,21 +167,18 @@ module Mvn2
       flags.join
     }
 
-    register_type(:before_run) { |list| simple_type(list) }
+    def self.def_actions
+      register_type(:before_run) { |list| simple_type(list) }
+      register_type(:after_run) { |list| simple_type_with_result(list) }
+      register_type(:before_start) { |list| simple_type(list) }
+      register_type(:after_end) { |list| simple_type_with_result(list) }
+      register_type(:notification) { |list|
+        options, result, cmd_clean, message_text = Mvn2::Plugins.get_vars :options, :result, :cmd_clean, :message_text
+        list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, result, cmd_clean, message_text) }
+      }
+    end
 
-    register_type(:after_run) { |list| simple_type_with_result(list) }
-
-    register_type(:before_start) { |list| simple_type(list) }
-
-    register_type(:after_end) { |list| simple_type_with_result(list) }
-
-    register_type(:notification) { |list|
-      options      = Mvn2::Plugins.get_var :options
-      result       = Mvn2::Plugins.get_var :result
-      cmd_clean    = Mvn2::Plugins.get_var :cmd_clean
-      message_text = Mvn2::Plugins.get_var :message_text
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, result, cmd_clean, message_text) }
-    }
+    def_actions
 
     def self.get_name(list)
       options = Mvn2::Plugins.get_var :options
@@ -168,11 +186,13 @@ module Mvn2
       (rval.nil? || rval.empty?) ? false : rval.first
     end
 
-    register_type(:log_file_name) { |list| get_name(list) }
+    def self.def_logs
+      register_type(:log_file_name) { |list| get_name(list) }
+      register_type(:log_file_disable) { |list| basic_type(list) }
+      register_type(:log_file_enable) { |list| (Mvn2::Plugins.get(:log_file_name).nil? || Mvn2::Plugins.get(:log_file_disable)) ? false : basic_type(list) }
+    end
 
-    register_type(:log_file_disable) { |list| basic_type(list) }
-
-    register_type(:log_file_enable) { |list| (Mvn2::Plugins.get(:log_file_name).nil? || Mvn2::Plugins.get(:log_file_disable)) ? false : basic_type(list) }
+    def_logs
 
     register_type(:line_filter) { |list, line|
       options = Mvn2::Plugins.get_var :options
@@ -195,8 +215,7 @@ module Mvn2
     register_type(:runner_enable) { |list, key| basic_type(list.select { |v| v[:options][:key] == key }) }
 
     register_type(:runner) { |list|
-      options = Mvn2::Plugins.get_var :options
-      cmd     = Mvn2::Plugins.get_var :cmd
+      options, cmd = Mvn2::Plugins.get_vars :options, :cmd
       Mvn2::Plugins.set_var :result, false
       list.sort_by { |v| -v[:options][:priority] }.each { |item|
         if Mvn2::Plugins.get(:runner_enable, item[:options][:key])
