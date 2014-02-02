@@ -4,64 +4,77 @@ class AvgPlugin
   extend Mvn2::PluginType
   extend Mvn2::TypeHelper
 
-  register_variable :average
-  register_variable :averages2
-  register_variable :counts
+  def self.def_vars
+    register_variable :average
+    register_variable :averages2
+    register_variable :counts
+  end
 
-  register_type(:full_avg_name) { |list|
-    options = Mvn2::Plugins.get_var :options
-    pieces  = []
-    list.sort_by { |v| v[:options][:order] }.each { |name| pieces << name[:block].call(options) }
-    pieces.join
-  }
+  def_vars
 
-  register_type(:block_average) { |list| basic_type(list) }
+  def self.def_types
+    register_type(:full_avg_name) { |list|
+      options = Mvn2::Plugins.get_var :options
+      pieces  = []
+      list.sort_by { |v| v[:options][:order] }.each { |name| pieces << name[:block].call(options) }
+      pieces.join
+    }
 
-  register_type(:block_update) { |list|
-    result, average, diff = Mvn2::Plugins.get_vars :result, :average, :diff
-    basic_type(list, result, average, diff)
-  }
+    register_type(:block_average) { |list| basic_type(list) }
 
-  register_type(:block_full_average) { |list| Mvn2::Plugins.get(:block_average) || basic_type(list) }
+    register_type(:block_update) { |list|
+      result, average, diff = Mvn2::Plugins.get_vars :result, :average, :diff
+      basic_type(list, result, average, diff)
+    }
 
-  register :option, sym: :track_average, names: %w(-k --track-average), desc: 'update the average and also display a progress bar while the build is in progress'
+    register_type(:block_full_average) { |list| Mvn2::Plugins.get(:block_average) || basic_type(list) }
+  end
 
-  register :option, sym: :track_full_average, names: %w(-u --track-full-average), desc: 'update the average list and also display a progress bar while the build is in progress'
+  def_types
 
-  register :option, sym: :advanced_average, names: %w(-d --advanced-average), desc: 'use k-means (with minimum optimal k) to find a list of averages and use the closest one for the progress bar and displayed average'
+  def self.def_options
+    register :option, sym: :track_average, names: %w(-k --track-average), desc: 'update the average and also display a progress bar while the build is in progress'
+    register :option, sym: :track_full_average, names: %w(-u --track-full-average), desc: 'update the average list and also display a progress bar while the build is in progress'
+    register :option, sym: :advanced_average, names: %w(-d --advanced-average), desc: 'use k-means (with minimum optimal k) to find a list of averages and use the closest one for the progress bar and displayed average'
+    register :option, sym: :show_average, names: %w(-w --show-average), desc: 'show the average(s) before and after the build (average tracking must be enabled)'
+    register :option, sym: :block_update, names: %w(-b --block-update), desc: 'block the average feature from updating the file(s)'
+  end
 
-  register :option, sym: :show_average, names: %w(-w --show-average), desc: 'show the average(s) before and after the build (average tracking must be enabled)'
+  def_options
 
-  register :option, sym: :block_update, names: %w(-b --block-update), desc: 'block the average feature from updating the file(s)'
+  def self.def_blockers
+    register :block_update, option: :block_update
+    register(:block_update) { |options, result, average, diff| !(result || (!options[:skip_tests] && diff >= average / 2.0)) }
+    register :block_full_average, option: :track_full_average, value: false
+    register :block_average, option: :track_average, value: false
+  end
 
-  register :block_update, option: :block_update
+  def_blockers
 
-  register(:block_update) { |options, result, average, diff| !(result || (!options[:skip_tests] && diff >= average / 2.0)) }
-
-  register :block_full_average, option: :track_full_average, value: false
-
-  register :block_average, option: :track_average, value: false
-
-  register(:before_run, order: 1) { |options|
-    read_avg
-    read_full_avg
-    read_advanced_avg
-    show_averages if options[:show_average]
-  }
-
-  register(:after_run, order: 2) { |_, _|
-    update_avg
-    update_full_avg
-  }
-
-  register(:after_run, order: 4) { |options, _|
-    if options[:show_average]
+  def self.def_actions
+    register(:before_run, order: 1) { |options|
       read_avg
       read_full_avg
       read_advanced_avg
-      show_averages
-    end
-  }
+      show_averages if options[:show_average]
+    }
+
+    register(:after_run, order: 2) { |_, _|
+      update_avg
+      update_full_avg
+    }
+
+    register(:after_run, order: 4) { |options, _|
+      if options[:show_average]
+        read_avg
+        read_full_avg
+        read_advanced_avg
+        show_averages
+      end
+    }
+  end
+
+  def_actions
 
   def self.full_avg_file
     pieces = Mvn2::Plugins.get :full_avg_name

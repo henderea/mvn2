@@ -13,69 +13,96 @@ class FilterPlugin
   INFO_LINE   = '[INFO] ------------------------------------------------------------------------'
   BUILD_REGEX = /\[INFO\] Building (?!(jar|war|zip))/
 
-  register_variable :info_line_last, false
-  register_variable :found, false
+  def self.def_vars
+    register_variable :info_line_last, false
+    register_variable :found, false
+  end
 
-  register :option, sym: :hide_between, names: %w(-h --hide-between), desc: 'hide the output between the end of test results (the line starting with "Tests run:") and the next trigger line'
+  def_vars
 
-  register :option, sym: :show_projects, names: %w(-j --show-projects), desc: 'show the "Building <project>" lines when outputting'
+  def self.def_options
+    register :option, sym: :hide_between, names: %w(-h --hide-between), desc: 'hide the output between the end of test results (the line starting with "Tests run:") and the next trigger line'
+    register :option, sym: :show_projects, names: %w(-j --show-projects), desc: 'show the "Building <project>" lines when outputting'
+  end
 
-  register(:line_filter, priority: 10) { |_, line|
-    info_line_last = Mvn2::Plugins.get_var :info_line_last
-    if line.start_with_any?('[INFO] BUILD SUCCESS', '[INFO] Reactor Summary:', '[INFO] BUILD FAILURE')
-      str = ''
-      str << INFO_LINE << "\n" unless info_line_last
-      str << line << "\n"
-      Mvn2::Plugins.set_vars found: true, info_line_last: false
-      str
-    else
-      nil
-    end
-  }
+  def_options
 
-  register(:line_filter, priority: 20) { |_, line|
-    if line.start_with_any?('[ERROR] COMPILATION ERROR :', 'Results :')
-      str = line << "\n"
-      Mvn2::Plugins.set_vars found: true, info_line_last: false
-      str
-    else
-      nil
-    end
-  }
+  def self.def_filters
+    def_filter1
+    def_filter2
+    def_filter3
+    def_filter4
+    def_filter5
+  end
 
-  register(:line_filter, priority: 30) { |_, line|
-    found = Mvn2::Plugins.get_var :found
-    if found
-      str = line << "\n"
-      Mvn2::Plugins.set_vars found: true, info_line_last: line.start_with?(INFO_LINE)
-      str
-    else
-      nil
-    end
-  }
+  def self.def_filter1
+    register(:line_filter, priority: 10) { |_, line|
+      info_line_last = Mvn2::Plugins.get_var :info_line_last
+      if line.start_with_any?('[INFO] BUILD SUCCESS', '[INFO] Reactor Summary:', '[INFO] BUILD FAILURE')
+        str = ''
+        str << INFO_LINE << "\n" unless info_line_last
+        str << line << "\n"
+        Mvn2::Plugins.set_vars found: true, info_line_last: false
+        str
+      else
+        nil
+      end
+    }
+  end
 
-  register(:line_filter, priority: 40) { |options, line|
-    found = Mvn2::Plugins.get_var :found
-    if options[:hide_between] && found && line.start_with?('Tests run:')
-      str = line << "\n\n"
-      Mvn2::Plugins.set_vars found: false, info_line_last: false
-      str
-    else
-      nil
-    end
-  }
+  def self.def_filter2
+    register(:line_filter, priority: 20) { |_, line|
+      if line.start_with_any?('[ERROR] COMPILATION ERROR :', 'Results :')
+        str = line << "\n"
+        Mvn2::Plugins.set_vars found: true, info_line_last: false
+        str
+      else
+        nil
+      end
+    }
+  end
 
-  register(:line_filter, priority: 50) { |options, line|
-    info_line_last = Mvn2::Plugins.get_var :info_line_last
-    if options[:show_projects] && line =~ BUILD_REGEX
-      str = ''
-      str << INFO_LINE << "\n" unless info_line_last
-      str << line << "\n"
-      str << INFO_LINE << "\n"
-      Mvn2::Plugins.set_var :info_line_last, true
-      str
-    else
-      nil
-    end
-  }
+  def self.def_filter3
+    register(:line_filter, priority: 30) { |_, line|
+      found = Mvn2::Plugins.get_var :found
+      if found
+        str = line << "\n"
+        Mvn2::Plugins.set_vars found: true, info_line_last: line.start_with?(INFO_LINE)
+        str
+      else
+        nil
+      end
+    }
+  end
+
+  def self.def_filter4
+    register(:line_filter, priority: 40) { |options, line|
+      found = Mvn2::Plugins.get_var :found
+      if options[:hide_between] && found && line.start_with?('Tests run:')
+        str = line << "\n\n"
+        Mvn2::Plugins.set_vars found: false, info_line_last: false
+        str
+      else
+        nil
+      end
+    }
+  end
+
+  def self.def_filter5
+    register(:line_filter, priority: 50) { |options, line|
+      info_line_last = Mvn2::Plugins.get_var :info_line_last
+      if options[:show_projects] && line =~ BUILD_REGEX
+        str = ''
+        str << INFO_LINE << "\n" unless info_line_last
+        str << line << "\n"
+        str << INFO_LINE << "\n"
+        Mvn2::Plugins.set_var :info_line_last, true
+        str
+      else
+        nil
+      end
+    }
+  end
+
+  def_filters
 end
