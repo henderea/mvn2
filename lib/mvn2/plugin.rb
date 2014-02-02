@@ -117,27 +117,23 @@ module Mvn2
       flags.join
     }
 
-    register_type(:before_run) { |list|
+    def self.simple_type(list, *args)
       options = Mvn2::Plugins.get_var :options
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options) }
-    }
+      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, *args) }
+    end
 
-    register_type(:after_run) { |list|
-      options = Mvn2::Plugins.get_var :options
-      result  = Mvn2::Plugins.get_var :result
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, result) }
-    }
+    def self.simple_type_with_result(list)
+      result = Mvn2::Plugins.get_var :result
+      simple_type(list, result)
+    end
 
-    register_type(:before_start) { |list|
-      options = Mvn2::Plugins.get_var :options
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options) }
-    }
+    register_type(:before_run) { |list| simple_type(list) }
 
-    register_type(:after_end) { |list|
-      options = Mvn2::Plugins.get_var :options
-      result  = Mvn2::Plugins.get_var :result
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, result) }
-    }
+    register_type(:after_run) { |list| simple_type_with_result(list) }
+
+    register_type(:before_start) { |list| simple_type(list) }
+
+    register_type(:after_end) { |list| simple_type_with_result(list) }
 
     register_type(:notification) { |list|
       options      = Mvn2::Plugins.get_var :options
@@ -147,9 +143,9 @@ module Mvn2
       list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, result, cmd_clean, message_text) }
     }
 
-    register_type(:log_file_name) { |list|
+    def self.get_name(list)
       options = Mvn2::Plugins.get_var :options
-      name    = nil
+      name    = false
       list.sort_by { |v| -v[:options][:priority] }.each { |item|
         if item[:block].nil?
           if item[:options].has_key?(:name) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
@@ -161,20 +157,20 @@ module Mvn2
           end
         else
           rval = item[:block].call(options)
-          unless rval.nil?
+          unless rval.nil? || !rval
             name = rval
             break
           end
         end
       }
       name
-    }
+    end
+
+    register_type(:log_file_name) { |list| get_name(list) }
 
     register_type(:log_file_disable) { |list| basic_type(list) }
 
-    register_type(:log_file_enable) { |list|
-      (Mvn2::Plugins.get(:log_file_name).nil? || Mvn2::Plugins.get(:log_file_disable)) ? false : basic_type(list)
-    }
+    register_type(:log_file_enable) { |list| (Mvn2::Plugins.get(:log_file_name).nil? || Mvn2::Plugins.get(:log_file_disable)) ? false : basic_type(list) }
 
     register_type(:line_filter) { |list, line|
       options = Mvn2::Plugins.get_var :options
@@ -236,28 +232,7 @@ module Mvn2
       end
     }
 
-    register_type(:operation_name) { |list|
-      options = Mvn2::Plugins.get_var :options
-      name    = false
-      list.sort_by { |v| -v[:options][:priority] }.each { |item|
-        if item[:block].nil?
-          if item[:options].has_key?(:name) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-            name = item[:options][:name]
-            break
-          elsif item[:options].has_key?(:option) && !options[item[:options][:option]].nil?
-            name = options[item[:options][:option]]
-            break
-          end
-        else
-          rval = item[:block].call(options)
-          unless rval.nil? || !rval
-            name = rval
-            break
-          end
-        end
-      }
-      name || 'Operation'
-    }
+    register_type(:operation_name) { |list| get_name(list) || 'Operation' }
 
     DEFAULT_COLOR_OPTS = {
         time:    {
