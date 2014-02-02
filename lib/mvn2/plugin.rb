@@ -68,6 +68,17 @@ module Mvn2
     def register_variable(name, value = nil)
       Mvn2::Plugins.instance.register_variable(name, value)
     end
+
+    def basic_type(list, *args)
+      options = Mvn2::Plugins.get_var :options
+      list.any? { |item|
+        if item[:block].nil?
+          item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
+        else
+          item[:block].call(options, *args)
+        end
+      }
+    end
   end
   class DefaultTypes
     extend Mvn2::PluginType
@@ -79,25 +90,19 @@ module Mvn2
     register_variable :cmd_clean
     register_variable :message_text
 
-    register_type(:option) { |list, options|
+    def self.register_option(list, options)
       list.sort_by { |v| v[:options][:sym].to_s }.each { |option|
         id      = option[:options].delete(:sym)
         names   = option[:options].delete(:names)
         default = option[:options].delete(:default) || nil
-        options.option id, names, option[:options]
+        yield(id, names, option)
         options.default_options id => default unless default.nil?
       }
-    }
+    end
 
-    register_type(:option_with_param) { |list, options|
-      list.sort_by { |v| v[:options][:sym].to_s }.each { |option|
-        id      = option[:options].delete(:sym)
-        names   = option[:options].delete(:names)
-        default = option[:options].delete(:default) || nil
-        options.option_with_param id, names, option[:options]
-        options.default_options id => default unless default.nil?
-      }
-    }
+    register_type(:option) { |list, options| register_option(list, options) { |id, names, option| options.option id, names, option[:options] } }
+
+    register_type(:option_with_param) { |list, options| register_option(list, options) { |id, names, option| options.option_with_param id, names, option[:options] } }
 
     register_type(:command_flag) { |list|
       options = Mvn2::Plugins.get_var :options
@@ -165,30 +170,10 @@ module Mvn2
       name
     }
 
-    register_type(:log_file_disable) { |list|
-      options = Mvn2::Plugins.get_var :options
-      list.any? { |item|
-        if item[:block].nil?
-          item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-        else
-          item[:block].call(options)
-        end
-      }
-    }
+    register_type(:log_file_disable) { |list| basic_type(list) }
 
     register_type(:log_file_enable) { |list|
-      if Mvn2::Plugins.get(:log_file_name).nil? || Mvn2::Plugins.get(:log_file_disable)
-        false
-      else
-        options = Mvn2::Plugins.get_var :options
-        list.any? { |item|
-          if item[:block].nil?
-            item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-          else
-            item[:block].call(options)
-          end
-        }
-      end
+      (Mvn2::Plugins.get(:log_file_name).nil? || Mvn2::Plugins.get(:log_file_disable)) ? false : basic_type(list)
     }
 
     register_type(:line_filter) { |list, line|
@@ -209,16 +194,7 @@ module Mvn2
       result
     }
 
-    register_type(:runner_enable) { |list, key|
-      options = Mvn2::Plugins.get_var :options
-      list.select { |v| v[:options][:key] == key }.any? { |item|
-        if item[:block].nil?
-          item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-        else
-          item[:block].call(options)
-        end
-      }
-    }
+    register_type(:runner_enable) { |list, key| basic_type(list.select { |v| v[:options][:key] == key }) }
 
     register_type(:runner) { |list|
       options = Mvn2::Plugins.get_var :options
@@ -234,33 +210,24 @@ module Mvn2
       Mvn2::Plugins.get_var :result
     }
 
+    def self.goal_filter(item, options)
+      if item[:block].nil?
+        if item[:options].has_key?(:goal) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
+          item[:options][:goal]
+        else
+          item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
+        end
+      else
+        rval = item[:block].call(options)
+        (rval.nil? || !rval) ? false : rval
+      end
+    end
+
     register_type(:goal_override) { |list|
       options        = Mvn2::Plugins.get_var :options
-      full_overrides = list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }.filtermap { |item|
-        if item[:block].nil?
-          if item[:options].has_key?(:goal) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-            item[:options][:goal]
-          else
-            item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
-          end
-        else
-          rval = item[:block].call(options)
-          (rval.nil? || !rval) ? false : rval
-        end
-      }
+      full_overrides = list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }.filtermap { |item| goal_filter(item, options) }
       if full_overrides.nil? || full_overrides.empty?
-        goals = list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }.filtermap { |item|
-          if item[:block].nil?
-            if item[:options].has_key?(:goal) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-              item[:options][:goal]
-            else
-              item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
-            end
-          else
-            rval = item[:block].call(options)
-            (rval.nil? || !rval) ? false : rval
-          end
-        }
+        goals = list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }.filtermap { |item| goal_filter(item, options) }
         goals = ['install'] if (goals - ['clean']).empty?
         goals = ['clean'] + goals unless goals.include?('clean')
         goals.join(' ')

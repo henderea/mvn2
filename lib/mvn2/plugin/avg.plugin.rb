@@ -14,45 +14,16 @@ class AvgPlugin
     pieces.join
   }
 
-  register_type(:block_average) { |list|
-    options = Mvn2::Plugins.get_var :options
-    list.any? { |item|
-      if item[:block].nil?
-        item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-      else
-        item[:block].call(options)
-      end
-    }
-  }
+  register_type(:block_average) { |list| basic_type(list) }
 
   register_type(:block_update) { |list|
-    options = Mvn2::Plugins.get_var :options
     result  = Mvn2::Plugins.get_var :result
     average = Mvn2::Plugins.get_var :average
     diff    = Mvn2::Plugins.get_var :diff
-    list.any? { |item|
-      if item[:block].nil?
-        item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-      else
-        item[:block].call(options, result, average, diff)
-      end
-    }
+    basic_type(list, result, average, diff)
   }
 
-  register_type(:block_full_average) { |list|
-    if Mvn2::Plugins.get(:block_average)
-      true
-    else
-      options = Mvn2::Plugins.get_var :options
-      list.any? { |item|
-        if item[:block].nil?
-          item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-        else
-          item[:block].call(options)
-        end
-      }
-    end
-  }
+  register_type(:block_full_average) { |list| Mvn2::Plugins.get(:block_average) || basic_type(list) }
 
   register :option, sym: :track_average, names: %w(-k --track-average), desc: 'update the average and also display a progress bar while the build is in progress'
 
