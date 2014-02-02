@@ -73,11 +73,40 @@ module Mvn2
       options = Mvn2::Plugins.get_var :options
       list.any? { |item|
         if item[:block].nil?
-          item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
+          flag_boolean(item, options)
         else
           item[:block].call(options, *args)
         end
       }
+    end
+
+    def flag_boolean(item, options)
+      item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
+    end
+
+    def complex_filter(list, options, symbol)
+      list.filtermap { |item|
+        if item[:block].nil?
+          if item[:options].has_key?(symbol) && flag_boolean(item, options)
+            item[:options][symbol]
+          else
+            item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
+          end
+        else
+          rval = item[:block].call(options)
+          (rval.nil? || !rval) ? false : rval
+        end
+      }
+    end
+
+    def simple_type(list, *args)
+      options = Mvn2::Plugins.get_var :options
+      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, *args) }
+    end
+
+    def simple_type_with_result(list)
+      result = Mvn2::Plugins.get_var :result
+      simple_type(list, result)
     end
   end
   class DefaultTypes
@@ -109,23 +138,13 @@ module Mvn2
       flags   = []
       list.each { |flag|
         if flag[:block].nil?
-          flags << " #{flag[:options][:flag]}" if flag[:options].has_key?(:option) && options[flag[:options][:option]] == (flag[:options].has_key?(:value) ? flag[:options][:value] : true)
+          flags << " #{flag[:options][:flag]}" if flag_boolean(flag, options)
         else
           flag[:block].call(options, flags)
         end
       }
       flags.join
     }
-
-    def self.simple_type(list, *args)
-      options = Mvn2::Plugins.get_var :options
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, *args) }
-    end
-
-    def self.simple_type_with_result(list)
-      result = Mvn2::Plugins.get_var :result
-      simple_type(list, result)
-    end
 
     register_type(:before_run) { |list| simple_type(list) }
 
@@ -146,7 +165,7 @@ module Mvn2
     def self.get_name(list)
       options = Mvn2::Plugins.get_var :options
       rval    = complex_filter(list.sort_by { |v| -v[:options][:priority] }, options, :name)
-      (rval.nil? || rval.empty?) ? false : rval
+      (rval.nil? || rval.empty?) ? false : rval.first
     end
 
     register_type(:log_file_name) { |list| get_name(list) }
@@ -188,21 +207,6 @@ module Mvn2
       }
       Mvn2::Plugins.get_var :result
     }
-
-    def self.complex_filter(list, options, symbol)
-      list.filtermap { |item|
-        if item[:block].nil?
-          if item[:options].has_key?(symbol) && item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-            item[:options][symbol]
-          else
-            item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
-          end
-        else
-          rval = item[:block].call(options)
-          (rval.nil? || !rval) ? false : rval
-        end
-      }
-    end
 
     register_type(:goal_override) { |list|
       options        = Mvn2::Plugins.get_var :options
