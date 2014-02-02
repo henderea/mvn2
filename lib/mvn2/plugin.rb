@@ -130,12 +130,16 @@ module Mvn2
     extend Mvn2::PluginType
     extend Mvn2::TypeHelper
 
-    register_variable :options
-    register_variable :result
-    register_variable :runner
-    register_variable :cmd
-    register_variable :cmd_clean
-    register_variable :message_text
+    def self.def_vars
+      register_variable :options
+      register_variable :result
+      register_variable :runner
+      register_variable :cmd
+      register_variable :cmd_clean
+      register_variable :message_text
+    end
+
+    def_vars
 
     def self.register_option(list, options)
       list.sort_by { |v| v[:options][:sym].to_s }.each { |option|
@@ -219,6 +223,12 @@ module Mvn2
     def_runner
 
     def self.def_command
+      def_command_flag
+      def_command_goal
+      register_type(:operation_name) { |list| get_name(list) || 'Operation' }
+    end
+
+    def self.def_command_flag
       register_type(:command_flag) { |list|
         options = Mvn2::Plugins.get_var :options
         flags   = []
@@ -231,7 +241,9 @@ module Mvn2
         }
         flags.join
       }
+    end
 
+    def self.def_command_goal
       register_type(:goal_override) { |list|
         options        = Mvn2::Plugins.get_var :options
         full_overrides = complex_filter(list.select { |v| v[:options][:override_all] }.sort_by { |v| -v[:options][:priority] }, options, :goal)
@@ -244,8 +256,6 @@ module Mvn2
           full_overrides.first
         end
       }
-
-      register_type(:operation_name) { |list| get_name(list) || 'Operation' }
     end
 
     def_command
