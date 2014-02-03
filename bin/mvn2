@@ -23,8 +23,8 @@ rescue Exception => e
   puts e.inspect
 end
 
-#abcd   h jkl n p  stuvw   012
-#    efg i   m o qr     xyz   3456789
+#abcd   h jkl n p  stuvw y 012
+#    efg i   m o qr     x z   3456789
 
 class MyOptions
   extend OptionUtil
