@@ -1,6 +1,7 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 class SkipTestsPlugin
-  extend Mvn2::Plugin
+  extend Plugin
 
   register :option, sym: :skip_tests, names: %w(-s --skip-tests), desc: 'skip tests'
 

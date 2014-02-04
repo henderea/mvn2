@@ -1,7 +1,8 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 class CommandPlugin
-  extend Mvn2::Plugin
-  extend Mvn2::PluginType
+  extend Plugin
+  extend PluginType
 
   def self.def_options
     register :option_with_param, sym: :command_override, names: ['--command-override'], desc: 'override the maven command (disables average tracking options and skip test option)'

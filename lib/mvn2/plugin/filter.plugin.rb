@@ -1,4 +1,5 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 
 class String
   def start_with_any?(*strs)
@@ -7,8 +8,8 @@ class String
 end
 
 class FilterPlugin
-  extend Mvn2::Plugin
-  extend Mvn2::PluginType
+  extend Plugin
+  extend PluginType
 
   INFO_LINE   = '[INFO] ------------------------------------------------------------------------'
   BUILD_REGEX = /\[INFO\] Building (?!(jar|war|zip))/
@@ -37,12 +38,12 @@ class FilterPlugin
 
   def self.def_filter1
     register(:line_filter, priority: 10) { |_, line|
-      info_line_last = Mvn2::Plugins.get_var :info_line_last
+      info_line_last = Plugins.get_var :info_line_last
       if line.start_with_any?('[INFO] BUILD SUCCESS', '[INFO] Reactor Summary:', '[INFO] BUILD FAILURE')
         str = ''
         str << INFO_LINE << "\n" unless info_line_last
         str << line << "\n"
-        Mvn2::Plugins.set_vars found: true, info_line_last: false
+        Plugins.set_vars found: true, info_line_last: false
         str
       else
         nil
@@ -54,7 +55,7 @@ class FilterPlugin
     register(:line_filter, priority: 20) { |_, line|
       if line.start_with_any?('[ERROR] COMPILATION ERROR :', 'Results :')
         str = line << "\n"
-        Mvn2::Plugins.set_vars found: true, info_line_last: false
+        Plugins.set_vars found: true, info_line_last: false
         str
       else
         nil
@@ -64,10 +65,10 @@ class FilterPlugin
 
   def self.def_filter3
     register(:line_filter, priority: 30) { |_, line|
-      found = Mvn2::Plugins.get_var :found
+      found = Plugins.get_var :found
       if found
         str = line << "\n"
-        Mvn2::Plugins.set_vars found: true, info_line_last: line.start_with?(INFO_LINE)
+        Plugins.set_vars found: true, info_line_last: line.start_with?(INFO_LINE)
         str
       else
         nil
@@ -77,10 +78,10 @@ class FilterPlugin
 
   def self.def_filter4
     register(:line_filter, priority: 40) { |options, line|
-      found = Mvn2::Plugins.get_var :found
+      found = Plugins.get_var :found
       if options[:hide_between] && found && line.start_with?('Tests run:')
         str = line << "\n\n"
-        Mvn2::Plugins.set_vars found: false, info_line_last: false
+        Plugins.set_vars found: false, info_line_last: false
         str
       else
         nil
@@ -90,13 +91,13 @@ class FilterPlugin
 
   def self.def_filter5
     register(:line_filter, priority: 50) { |options, line|
-      info_line_last = Mvn2::Plugins.get_var :info_line_last
+      info_line_last = Plugins.get_var :info_line_last
       if options[:show_projects] && line =~ BUILD_REGEX
         str = ''
         str << INFO_LINE << "\n" unless info_line_last
         str << line << "\n"
         str << INFO_LINE << "\n"
-        Mvn2::Plugins.set_var :info_line_last, true
+        Plugins.set_var :info_line_last, true
         str
       else
         nil

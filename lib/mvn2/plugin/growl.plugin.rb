@@ -1,7 +1,8 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 class GrowlPlugin
-  extend Mvn2::Plugin
-  extend Mvn2::PluginType
+  extend Plugin
+  extend PluginType
 
   register :option, sym: :no_sticky, names: %w(-n --no-sticky), desc: 'make the growl notification non-sticky'
 

@@ -1,6 +1,7 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 class ExceptionPlugin
-  extend Mvn2::Plugin
+  extend Plugin
 
   register :option, sym: :exception, names: %w(-e --exception), desc: 'add the "-e -X" options to the mvn call'
 

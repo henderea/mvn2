@@ -1,7 +1,8 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 class DefaultRunnerPlugin
-  extend Mvn2::Plugin
-  extend Mvn2::PluginType
+  extend Plugin
+  extend PluginType
 
   register_variable :output
 
@@ -11,7 +12,7 @@ class DefaultRunnerPlugin
     register(:runner, key: :default, priority: 0) { |_, cmd|
       output = `#{cmd}`
       result = $?.success?
-      Mvn2::Plugins.set_var :output, output
+      Plugins.set_var :output, output
       result
     }
   end
@@ -20,15 +21,15 @@ class DefaultRunnerPlugin
 
   def self.def_actions
     register(:after_run, order: 1000) { |_, _|
-      runner = Mvn2::Plugins.get_var :runner
+      runner = Plugins.get_var :runner
       if runner == :default
-        output = Mvn2::Plugins.get_var :output
-        IO.write(Mvn2::Plugins.get(:log_file_name), output) if Mvn2::Plugins.get(:log_file_enable)
+        output = Plugins.get_var :output
+        IO.write(Plugins.get(:log_file_name), output) if Plugins.get(:log_file_enable)
         output.each_line { |l|
-          tmp = Mvn2::Plugins.get :line_filter, l
+          tmp = Plugins.get :line_filter, l
           puts tmp unless tmp.nil?
         }
-        found = Mvn2::Plugins.get_var :found
+        found = Plugins.get_var :found
         output.each_line { |line| puts line } unless found
       end
     }

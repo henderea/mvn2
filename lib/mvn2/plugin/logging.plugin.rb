@@ -1,7 +1,8 @@
-require 'mvn2/plugin'
+require 'everyday-plugins'
+include EverydayPlugins
 class LoggingPlugin
-  extend Mvn2::Plugin
-  extend Mvn2::PluginType
+  extend Plugin
+  extend PluginType
 
   register :option, sym: :write_log, names: %w(-l --write-log), desc: 'write all of the output to a log file'
   register :option_with_param, sym: :log_file, names: ['--log-file'], desc: 'set the log file name', default: 'build.log'
