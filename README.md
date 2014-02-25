@@ -30,7 +30,7 @@ Please see the plugin folder in this gem for examples of how to use the plugin s
 * `-h` or `--hide-between` to hide the output between the end of test results (the line starting with "Tests run:") and the next trigger line
 * `-w` or `--show-average` to show the average(s) before and after the build (average tracking must be enabled) (default is to not show averages)
 * `-b` or `--block-update` to block the average feature from updating the file(s)
-* `-v` or `--override-colors` to override the colors with the ones configured by the [colorconfig][colorconfig] script
+* `-v` or `--override-colors` to override the colors with the ones configured by the `colorconfig` script
 * `-j` or `--show-projects` to show the `Building <project>` lines when outputting
 * `--run-before CMD` to run `CMD` before calling the maven build
 * `--run-after CMD` to run `CMD` after finishing the maven build

@@ -14,8 +14,8 @@ include EverydayPlugins
 
 Plugins.load_plugins 'mvn2'
 
-#abcd   h jkl n p  stuvw y 012
-#    efg i   m o qr     x z   3456789
+#abcd   h jkl n p  stuvw y 012      9
+#    efg i   m o qr     x z   345678
 
 class MyOptions
   extend OptionUtil
@@ -23,6 +23,7 @@ class MyOptions
   default_settings toggle: true
 
   defaults_option 'mvn2-defaults.yaml', %w(-1 --set-defaults), desc: 'set the defaults so you can just run mvn2 without any parameters (local to each folder)'
+  global_defaults_option '~/mvn2-defaults.yaml', %w(-2 --set-global-defaults), desc: 'set the global defaults so you can just run mvn2 without any parameters (global per user)'
 
   help_option ['--help'], desc: 'print out this help'
 end
@@ -34,7 +35,7 @@ MyOptions.parse!
 
 options = MyOptions.options
 
-Plugins.set_var(:options, options)
+Plugins.set_var :options, options
 
 Signal.trap('SIGINT') {
   puts "\nBuild Canceled\n\n"

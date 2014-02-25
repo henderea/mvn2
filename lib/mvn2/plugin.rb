@@ -196,7 +196,6 @@ module Mvn2
   end
   class ColorTypes
     extend PluginType
-    extend TypeHelper
 
     DEFAULT_COLOR_OPTS = {
         time:    {
