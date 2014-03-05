@@ -25,6 +25,8 @@ class MyOptions
   defaults_option 'mvn2-defaults.yaml', %w(-1 --set-defaults), desc: 'set the defaults so you can just run mvn2 without any parameters (local to each folder)'
   global_defaults_option '~/mvn2-defaults.yaml', %w(-2 --set-global-defaults), desc: 'set the global defaults so you can just run mvn2 without any parameters (global per user)'
 
+  show_defaults_option %w(-3 --show-defaults), desc: 'show the defaults that are currently set'
+
   help_option ['--help'], desc: 'print out this help'
 end
 
