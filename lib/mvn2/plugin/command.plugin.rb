@@ -11,6 +11,7 @@ class CommandPlugin
     register :option_with_param, sym: :run_after, names: ['--run-after'], desc: 'run a command after finishing the maven build'
     register :option_with_param, sym: :run_success, names: ['--run-success'], desc: 'run a command after finishing a successful maven build'
     register :option_with_param, sym: :run_failure, names: ['--run-failure'], desc: 'run a command after finishing an unsuccessful maven build'
+    register :option_with_param, sym: :run_test, names: ['--run-test'], desc: 'run a specific test class or method(s) (support dependent on maven surefire plugin version)'
   end
 
   def_options
@@ -18,13 +19,17 @@ class CommandPlugin
   def self.def_others
     register :goal_override, order: 10, option: :package, goal: 'package'
 
+    register(:goal_override, order: 20) { |options| options[:run_test].nil? ? nil : 'test' }
+
+    register(:command_flag) { |options, flags| flags << ' -Dtest=' << options[:run_test] << ' -DfailIfNoTests=false' unless options[:run_test].nil? }
+
     register :goal_override, override_all: true, priority: 100, option: :command_override
 
     register(:full_avg_name, order: 20) { |options| options[:package] ? '-package' : '' }
 
     register(:operation_name, priority: 100) { |options| options[:command_override].nil? ? nil : 'Operation' }
 
-    register(:block_average) { |options| !options[:command_override].nil? }
+    register(:block_average) { |options| !options[:command_override].nil? || !options[:run_test].nil? }
   end
 
   def_others
