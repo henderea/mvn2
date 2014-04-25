@@ -160,6 +160,7 @@ module Mvn2
       def_command_flag
       def_command_goal
       register_type(:operation_name) { |list| get_name(list) || 'Operation' }
+      register_type(:clean_block) { |list| basic_type(list) }
     end
 
     def self.def_command_flag
@@ -185,6 +186,7 @@ module Mvn2
           goals = complex_filter(list.select { |v| !v[:options][:override_all] }.sort_by { |v| v[:options][:order] }, options, :goal)
           goals = ['install'] if (goals - ['clean']).empty?
           goals = ['clean'] + goals unless goals.include?('clean')
+          goals = goals - ['clean'] if Plugins.get(:clean_block)
           goals.join(' ')
         else
           full_overrides.first

@@ -14,8 +14,8 @@ include EverydayPlugins
 
 Plugins.load_plugins 'mvn2'
 
-#abcd   h jkl n p  stuvw y 012      9
-#    efg i   m o qr     x z   345678
+#abcd   h jkl nop  stuvw y 012      9
+#    efg i   m   qr     x z   345678
 
 class MyOptions
   extend OptionUtil
@@ -60,6 +60,7 @@ class Mvn2Runner
   def initialize(options)
     @options = options
     setup_cmd
+    puts '> ' << @cmd
     Plugins.set_var :cmd, @cmd
     Plugins.set_var :cmd_clean, @cmd_clean
   end
