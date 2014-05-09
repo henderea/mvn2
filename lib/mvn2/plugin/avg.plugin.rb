@@ -4,7 +4,7 @@ include EverydayPlugins
 class AvgPlugin
   extend Plugin
   extend PluginType
-  extend Mvn2::TypeHelper
+  extend TypeHelper
 
   def self.def_vars
     register_variable :average

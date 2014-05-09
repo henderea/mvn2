@@ -87,6 +87,7 @@ class Mvn2Runner
     Plugins.set_var :message_text, "#{operation_name} #{(@result ? 'Successful' : 'Failed')}"
 
     Plugins.get :notification
+    Plugins.get :after_notification
   end
 end
 

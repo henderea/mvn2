@@ -5,54 +5,6 @@ require 'everyday-plugins'
 include EverydayPlugins
 
 module Mvn2
-
-  module TypeHelper
-    def basic_type(list, *args)
-      options = Plugins.get_var :options
-      list.any? { |item|
-        if item[:block].nil?
-          flag_boolean(item, options)
-        else
-          item[:block].call(options, *args)
-        end
-      }
-    end
-
-    def flag_boolean(item, options)
-      item[:options].has_key?(:option) && options[item[:options][:option]] == (item[:options].has_key?(:value) ? item[:options][:value] : true)
-    end
-
-    def complex_filter(list, options, symbol)
-      list.filtermap { |item|
-        if item[:block].nil?
-          if item[:options].has_key?(symbol) && flag_boolean(item, options)
-            item[:options][symbol]
-          else
-            item[:options].has_key?(:option) && !options[item[:options][:option]].nil? ? options[item[:options][:option]] : false
-          end
-        else
-          rval = item[:block].call(options)
-          (rval.nil? || !rval) ? false : rval
-        end
-      }
-    end
-
-    def simple_type(list, *args)
-      options = Plugins.get_var :options
-      list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, *args) }
-    end
-
-    def simple_type_with_result(list)
-      result = Plugins.get_var :result
-      simple_type(list, result)
-    end
-
-    def get_name(list)
-      options = Plugins.get_var :options
-      rval    = complex_filter(list.sort_by { |v| -v[:options][:priority] }, options, :name)
-      (rval.nil? || rval.empty?) ? false : rval.first
-    end
-  end
   class OptionTypes
     extend PluginType
     extend TypeHelper
@@ -87,6 +39,7 @@ module Mvn2
         options, result, cmd_clean, message_text = Plugins.get_vars :options, :result, :cmd_clean, :message_text
         list.sort_by { |v| v[:options][:order] }.each { |item| item[:block].call(options, result, cmd_clean, message_text) }
       }
+      register_type(:after_notification) { |list| simple_type_with_result(list) }
     end
 
     def_actions
