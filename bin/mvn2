@@ -92,3 +92,4 @@ class Mvn2Runner
 end
 
 Mvn2Runner.new(options).run
+exit 1 unless Plugins.get_var :result
