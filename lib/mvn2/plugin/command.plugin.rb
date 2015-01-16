@@ -18,7 +18,8 @@ class CommandPlugin
   def_options
 
   def self.def_others
-    register :goal_override, order: 10, option: :package, goal: 'package'
+    # register :goal_override, order: 10, option: :package, goal: 'package'
+    register(:goal_override, order: 10) { |options| (options[:run_test].nil? && !options[:test_only] && options[:package]) ? 'package' : nil }
 
     register(:goal_override, order: 20) { |options| (options[:run_test].nil? && !options[:test_only]) ? nil : 'test' }
 
