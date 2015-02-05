@@ -14,8 +14,8 @@ include EverydayPlugins
 
 Plugins.load_plugins 'mvn2'
 
-#abcd   h jkl nop  stuvw y 012      9
-#    efg i   m   qr     x z   345678
+#abcd   hijkl nop  stuvw y 012      9
+#    efg     m   qr     x z   345678
 
 class MyOptions
   extend OptionUtil
