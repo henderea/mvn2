@@ -17,7 +17,7 @@ class TimerPlugin
     Plugins.set_var :thread, options[:timer] ? Thread.new {
       start_time = Plugins.get_var :time1
       while true
-        print "\r#{get_timer_message(start_time, Time.now)}"
+        print "\r\e[2K#{get_timer_message(start_time, Time.now)}"
         sleep(0.05)
       end
     } : nil
