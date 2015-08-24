@@ -7,18 +7,22 @@ class TimerPlugin
   register_variable :time1
   register_variable :diff
   register_variable :thread
+  register_variable :timer_interval
 
   register :option, sym: :timer, names: %w(-t --timer), desc: 'display a timer while the build is in progress'
 
   register :option, sym: :colored, names: %w(-c --colored), desc: 'display some colors in the timer/progress message'
 
+  register :option, sym: :slow_timer, names: %w(-x --slow-timer), desc: 'slow down the timer to only update twice a second instead of 20 times a second'
+
   register(:before_run, order: 2) { |options|
     Plugins.set_var :time1, Time.now
+    Plugins.set_var :timer_interval, options[:slow_timer] ? 0.5 : 0.05
     Plugins.set_var :thread, options[:timer] ? Thread.new {
       start_time = Plugins.get_var :time1
       while true
         print "\r\e[2K#{get_timer_message(start_time, Time.now)}"
-        sleep(0.05)
+        sleep(Plugins.get_var(:timer_interval))
       end
     } : nil
   }
