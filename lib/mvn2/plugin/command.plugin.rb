@@ -12,6 +12,8 @@ class CommandPlugin
     register :option_with_param, sym: :run_success, names: ['--run-success'], desc: 'run a command after finishing a successful maven build'
     register :option_with_param, sym: :run_failure, names: ['--run-failure'], desc: 'run a command after finishing an unsuccessful maven build'
     register :option_with_param, sym: :run_test, names: ['--run-test'], desc: 'run a specific test class or method(s) (support dependent on maven surefire plugin version)'
+    register :option_with_param, sym: :maven_option, names: ['--maven-option'], desc: 'specify a maven option (leave off the -D)', append: true
+    register :option_with_param, sym: :maven_profile, names: ['--maven-profile'], desc: 'specify a maven profile'
     register :option, sym: :test_only, names: %w(-o --test-only), desc: 'instead of cleaning and rebuilding before running tests, only run test-compile before running tests'
   end
 
@@ -28,6 +30,10 @@ class CommandPlugin
     register :goal_override, order: 10, option: :test_only, goal: 'test-compile'
 
     register(:command_flag) { |options, flags| flags << ' -Dtest=' << options[:run_test] << ' -DfailIfNoTests=false' unless options[:run_test].nil? }
+
+    register(:command_flag) { |options, flags| options[:maven_option].each { |opt| flags << " -D#{opt}" } unless options[:maven_option].nil? || options[:maven_option].empty? }
+
+    register(:command_flag) { |options, flags| flags << ' -P ' << options[:maven_profile] unless options[:maven_profile].nil? }
 
     register :goal_override, override_all: true, priority: 100, option: :command_override
 
