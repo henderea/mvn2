@@ -9,8 +9,8 @@ GEM
   remote: https://rubygems.org/
   specs:
     everyday-cli-utils (1.8.6)
-    everyday-plugins (1.2.0)
-      everyday-cli-utils (~> 1.7)
+    everyday-plugins (1.2.1)
+      everyday-cli-utils (~> 1.8, >= 1.8.6)
     rake (10.4.2)
 
 PLATFORMS
