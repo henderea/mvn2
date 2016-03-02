@@ -11,7 +11,7 @@ GEM
     everyday-cli-utils (1.8.6)
     everyday-plugins (1.2.1)
       everyday-cli-utils (~> 1.8, >= 1.8.6)
-    rake (10.4.2)
+    rake (10.5.0)
 
 PLATFORMS
   ruby
