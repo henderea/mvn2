@@ -17,6 +17,7 @@ class FilterPlugin
   def self.def_vars
     register_variable :info_line_last, false
     register_variable :found, false
+    register_variable :failures, 0
   end
 
   def_vars
@@ -82,6 +83,11 @@ class FilterPlugin
       if options[:hide_between] && found && line.start_with?('Tests run:')
         str = line << "\n\n"
         Plugins.set_vars found: false, info_line_last: false
+        if line =~ /^.*Failures:\s+(\d+),.*$/
+          Plugins.set_var :failures, $1.to_i
+        else
+          Plugins.set_var :failures, nil
+        end
         str
       else
         nil
