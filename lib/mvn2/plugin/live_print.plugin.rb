@@ -15,7 +15,12 @@ class LivePrintPlugin
   register(:runner, key: :live_print, priority: 1000) { |_, cmd|
     result = false
     begin
-      log_file = Plugins.get(:log_file_enable) ? File.open(Plugins.get(:log_file_name), 'w+') : nil
+      if Plugins.get(:log_file_enable)
+        log_file = File.open(Plugins.get(:log_file_name), 'w+')
+        log_file.sync = true
+      else
+        log_file = nil
+      end
       IO.popen(cmd).each do |l|
         log_file << l unless log_file.nil?
         output = Plugins.get :line_filter, l
