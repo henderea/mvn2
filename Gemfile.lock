@@ -1,14 +1,14 @@
 PATH
   remote: .
   specs:
-    mvn2 (2.6.10)
+    mvn2 (2.6.12)
       everyday-cli-utils (~> 1.8, >= 1.8.6)
       everyday-plugins (~> 1.2)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    everyday-cli-utils (1.8.6)
+    everyday-cli-utils (1.8.7.1)
     everyday-plugins (1.2.1)
       everyday-cli-utils (~> 1.8, >= 1.8.6)
     rake (10.5.0)
@@ -22,4 +22,4 @@ DEPENDENCIES
   rake (~> 10.4)
 
 BUNDLED WITH
-   1.11.2
+   1.14.3
