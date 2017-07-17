@@ -3,7 +3,7 @@ include EverydayPlugins
 
 class String
   def start_with_any?(*strs)
-    strs.empty? ? false : strs.any? { |str| start_with?(str) }
+    strs.empty? ? false : strs.any? { |str| gsub(/\e\[.*?m/, '').start_with?(str) }
   end
 end
 
@@ -11,13 +11,15 @@ class FilterPlugin
   extend Plugin
   extend PluginType
 
-  INFO_LINE   = '[INFO] ------------------------------------------------------------------------'
-  BUILD_REGEX = /\[INFO\] Building (?!(jar|war|zip))/
+  INFO_LINE_FULL   = '[INFO] ------------------------------------------------------------------------'
+  BUILD_REGEX = /(\[(?:\e\S+)?INFO(?:\e\S+)?\] (?:\e\S+)?)Building (?!(jar|war|zip)).*(?:\e\S+)?$/
+  RESULT_REGEX = /(\[(?:\e\S+)?INFO(?:\e\S+)?\] (?:\e\S+)?)(BUILD SUCCESS|Reactor Summary:|BUILD FAILURE).*(?:\e\S+)?$/
 
   def self.def_vars
     register_variable :info_line_last, false
     register_variable :found, false
     register_variable :failures, 0
+    register_variable :info_line, ''
   end
 
   def_vars
@@ -40,9 +42,10 @@ class FilterPlugin
   def self.def_filter1
     register(:line_filter, priority: 10) { |_, line|
       info_line_last = Plugins.get_var :info_line_last
+      info_line = Plugins.get_var :info_line
       if line.start_with_any?('[INFO] BUILD SUCCESS', '[INFO] Reactor Summary:', '[INFO] BUILD FAILURE')
         str = ''
-        str << INFO_LINE << "\n" unless info_line_last
+        str << "#{info_line}\n" unless info_line_last
         str << line << "\n"
         Plugins.set_vars found: true, info_line_last: false
         str
@@ -69,7 +72,7 @@ class FilterPlugin
       found = Plugins.get_var :found
       if found
         str = line << "\n"
-        Plugins.set_vars found: true, info_line_last: line.start_with?(INFO_LINE)
+        Plugins.set_vars found: true, info_line_last: line.start_with_any?(INFO_LINE_FULL)
         str
       else
         nil
@@ -80,7 +83,7 @@ class FilterPlugin
   def self.def_filter4
     register(:line_filter, priority: 40) { |options, line|
       found = Plugins.get_var :found
-      if options[:hide_between] && found && line.start_with?('Tests run:')
+      if options[:hide_between] && found && line.start_with_any?('Tests run:')
         str = line << "\n\n"
         Plugins.set_vars found: false, info_line_last: false
         if line =~ /^.*Failures:\s+(\d+),.*$/
@@ -98,11 +101,15 @@ class FilterPlugin
   def self.def_filter5
     register(:line_filter, priority: 50) { |options, line|
       info_line_last = Plugins.get_var :info_line_last
-      if options[:show_projects] && line =~ BUILD_REGEX
+      info_line = Plugins.get_var :info_line
+      if line.gsub(/\e\[.*?m/, '').chomp == INFO_LINE_FULL
+        Plugins.set_var :info_line, line.chomp
+        nil
+      elsif options[:show_projects] && line =~ BUILD_REGEX
         str = ''
-        str << INFO_LINE << "\n" unless info_line_last
+        str << "#{info_line}\n" unless info_line_last
         str << line << "\n"
-        str << INFO_LINE << "\n"
+        str << "#{info_line}\n"
         Plugins.set_var :info_line_last, true
         str
       else

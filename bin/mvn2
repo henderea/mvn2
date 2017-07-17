@@ -54,8 +54,6 @@ Plugins.get :color_override
 
 class Mvn2Runner
   HEADLESS    = ' -Djava.awt.headless=true'
-  INFO_LINE   = '[INFO] ------------------------------------------------------------------------'
-  BUILD_REGEX = /\[INFO\] Building (?!(jar|war|zip))/
 
   def initialize(options)
     @options = options

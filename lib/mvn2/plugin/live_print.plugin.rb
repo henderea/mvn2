@@ -1,3 +1,4 @@
+require 'pty'
 require 'everyday-plugins'
 include EverydayPlugins
 class LivePrintPlugin
@@ -21,12 +22,14 @@ class LivePrintPlugin
       else
         log_file = nil
       end
-      IO.popen(cmd).each do |l|
-        log_file << l unless log_file.nil?
-        output = Plugins.get :line_filter, l
-        puts "\r\e[2K#{output}" unless output.nil?
-        result = true if l.chomp.start_with?('[INFO] BUILD SUCCESS')
-      end
+      PTY.spawn("TERM='xterm-256color' #{cmd}") { |r, w, pid|
+        r.each { |l|
+          log_file << l.gsub(/\e\[.*?m/, '') unless log_file.nil?
+          output = Plugins.get :line_filter, l
+          puts "\r\e[2K#{output}" unless output.nil?
+          result = true if l.chomp.gsub(/\e\[.*?;/, '').start_with?('[INFO] BUILD SUCCESS')
+        }
+      }
     ensure
       log_file.close unless log_file.nil?
     end
