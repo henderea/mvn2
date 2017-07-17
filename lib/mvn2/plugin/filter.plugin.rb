@@ -1,19 +1,12 @@
 require 'everyday-plugins'
 include EverydayPlugins
 
-class String
-  def start_with_any?(*strs)
-    strs.empty? ? false : strs.any? { |str| gsub(/\e\[.*?m/, '').start_with?(str) }
-  end
-end
-
 class FilterPlugin
   extend Plugin
   extend PluginType
 
   INFO_LINE_FULL   = '[INFO] ------------------------------------------------------------------------'
   BUILD_REGEX = /(\[(?:\e\S+)?INFO(?:\e\S+)?\] (?:\e\S+)?)Building (?!(jar|war|zip)).*(?:\e\S+)?$/
-  RESULT_REGEX = /(\[(?:\e\S+)?INFO(?:\e\S+)?\] (?:\e\S+)?)(BUILD SUCCESS|Reactor Summary:|BUILD FAILURE).*(?:\e\S+)?$/
 
   def self.def_vars
     register_variable :info_line_last, false

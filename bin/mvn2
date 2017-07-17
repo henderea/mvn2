@@ -46,7 +46,8 @@ Signal.trap('SIGINT') {
 
 class String
   def start_with_any?(*strs)
-    strs.empty? ? false : strs.any? { |str| start_with?(str) }
+    s = gsub(/\e\[.*?m/, '').chomp
+    strs.empty? ? false : strs.any? { |str| s.start_with?(str) }
   end
 end
 
