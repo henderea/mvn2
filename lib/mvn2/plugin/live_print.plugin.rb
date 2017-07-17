@@ -27,7 +27,7 @@ class LivePrintPlugin
           log_file << l.gsub(/\e\[.*?m/, '') unless log_file.nil?
           output = Plugins.get :line_filter, l
           puts "\r\e[2K#{output}" unless output.nil?
-          result = true if l.chomp.gsub(/\e\[.*?;/, '').start_with?('[INFO] BUILD SUCCESS')
+          result = true if l.chomp.gsub(/\e\[.*?m/, '').start_with?('[INFO] BUILD SUCCESS')
         }
       }
     ensure
