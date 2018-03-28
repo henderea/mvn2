@@ -6,13 +6,14 @@ class FilterPlugin
   extend PluginType
 
   INFO_LINE_FULL   = '[INFO] ------------------------------------------------------------------------'
+  INFO_LINE_COLORED   = "[\e[1;34mINFO\e[m] \e[1m------------------------------------------------------------------------\e[m"
   BUILD_REGEX = /(\[(?:\e\S+)?INFO(?:\e\S+)?\] (?:\e\S+)?)Building (?!(jar|war|zip)).*(?:\e\S+)?$/
 
   def self.def_vars
     register_variable :info_line_last, false
     register_variable :found, false
     register_variable :failures, 0
-    register_variable :info_line, ''
+    register_variable :info_line, INFO_LINE_COLORED
   end
 
   def_vars
